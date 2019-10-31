@@ -1,5 +1,8 @@
 # PinchForce
-Pinch force experiments basic design with psychopy
+Pinch force experiments basic design with psychopy, using custom serial parser to read data.
+
+# psychopy links:
+https://www.psychopy.org/
 
 
 Device: 50Kg load sensor, calibrated to output data in grams
