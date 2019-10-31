@@ -4,6 +4,10 @@ Pinch force experiments basic design with psychopy, using custom serial parser t
 # psychopy links:
 https://www.psychopy.org/
 
+# Requirements
+python3.6
+psychopy (3.2 or greater)
+
 
 Device: 50Kg load sensor, calibrated to output data in grams
 https://learn.sparkfun.com/tutorials/load-cell-amplifier-hx711-breakout-hookup-guide
