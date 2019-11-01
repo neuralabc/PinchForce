@@ -18,6 +18,7 @@ import time
 from psychopy.iohub import launchHubServer
 from psychopy import visual, core
 import numpy as np
+import os
 
 
 # event_parser_info dict:
@@ -48,20 +49,30 @@ PARITY = 'NONE'
 psychopy_mon_name = 'Monitor_01'
 exp_code = 'SPFT_device'
 sess_code = 'S_{0}'.format((time.mktime(time.localtime())))
-iohubkwargs = {'psychopy_monitor_name': psychopy_mon_name,
+
+# create the process that will run in the background polling devices
+
+if os.path.exists(SERIAL_PORT):
+    iohubkwargs = {'psychopy_monitor_name': psychopy_mon_name,
                'experiment_code': exp_code,
                'session_code': sess_code,
                'serial.Serial': dict(name='serial', port=SERIAL_PORT, baud=BAUDRATE,
                                      bytesize=BYTESIZE,parity=PARITY,
                                      event_parser=dict(delimiter='\r\n'))} #event_parser_info
-# create the process that will run in the background polling devices
-io = launchHubServer(**iohubkwargs)
+    SPFT_present = True
+else:
+    print('SPFT_device not detected')
+    iohubkwargs = {'psychopy_monitor_name': psychopy_mon_name, 'experiment_code': exp_code,'session_code': sess_code}
+    SPFT_present = False
 
+io = launchHubServer(**iohubkwargs)    
 # some default devices have been created that can now be used
 display = io.devices.display
 keyboard = io.devices.keyboard
 mouse = io.devices.mouse
-SPFT_device = io.devices.serial
+if SPFT_present:
+    SPFT_device = io.devices.serial
+
 
 
 
@@ -100,6 +111,11 @@ message2 = visual.TextStim(win, pos=(0.0, -(display_resolution[1]/4)),
     alignHoriz='center', alignVert='center', height=40,
     text='Press Any Key to Quit.',
     autoLog=False, wrapWidth=display_resolution[0] * .9)
+bar_text = visual.TextStim(win, pos=(bar_start_x_offset+bar_width, 0.0),
+    alignHoriz='center', alignVert='center', height=40,
+    text='',color='Black',
+    autoLog=False)
+max_line = visual.ShapeStim(win,vertices=[[bar_start_x_offset-bar_width/2, bar_ref_start_pos],[bar_start_x_offset+bar_width/2,bar_ref_start_pos]],lineColor='Firebrick')
 
 last_wheelPosY = 0
 
@@ -138,20 +154,26 @@ while not kb_events:
 #        bar.height += rise_amnt
 #        bar.pos[1] += rise_amnt/2
     #bar.width += (t_now-t_start)*2*flip_bit #gets faster as time continues
-
-    try:
-        ser_str = SPFT_device.read().split('\r\n')[0:-1]
-        SPFT_val = int(ser_str[-1])
-    except:
-        continue
-    
-    bar.height = SPFT_val+bar_ref_start_height #stays as last value, if polling too much
-    bar.pos[1] = SPFT_val/2 + bar_ref_start_pos
-    if bar.width >= 200:
-        flip_bit *= -1
-    elif bar.width <= 50:
-        flip_bit *= -1
+    if SPFT_present:
+        try:
+            ser_str = SPFT_device.read().split('\r\n')[0:-1]
+            SPFT_val = int(ser_str[-1])/10 #XXX this divisor is just to limit for testing, should be replaced with 5-30% of MVC calc
+        except:
+            continue
         
+        bar.height = SPFT_val+bar_ref_start_height #stays as last value, if the value has not been updated by the device
+        bar.pos[1] = SPFT_val/2 + bar_ref_start_pos
+        bar_text.pos = (bar_start_x_offset,bar.pos[1]+bar.height/2)
+        bar_text.text = "{:d}".format(int(SPFT_val))
+        #this does not currently work
+        max_line.setVertices=[[bar_start_x_offset-bar_width/2, bar.height],[bar_start_x_offset+bar_width/2, bar.height]]
+
+        
+        if bar.width >= 200:
+            flip_bit *= -1
+        elif bar.width <= 50:
+            flip_bit *= -1
+            
     bar_ref.height = ref_pos + bar_ref_start_height
     bar_ref.pos[1] = bar_ref_start_pos + ref_pos/2 + bar_ref_start_height
     
@@ -185,6 +207,8 @@ while not kb_events:
     bar_ref.draw()
     message.draw()
     message2.draw()
+    bar_text.draw()
+    max_line.draw()
     flip_time = win.flip()  # redraw the buffer
 
     # Check for keyboard orand mouse events.
@@ -199,8 +223,8 @@ while not kb_events:
         print("Ending Demo Due to 15 Seconds of Inactivity.")
         break
 
-    for serevt in SPFT_device.getEvents():
-        print(serevt)
+#    for serevt in SPFT_device.getEvents():
+#        print(serevt)
     # Clear out events that were not accessed this frame.
     io.clearEvents()
 
