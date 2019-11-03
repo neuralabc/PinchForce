@@ -94,15 +94,15 @@ grating = visual.GratingStim(win, pos=(300, 0),
     autoLog=False)
     
 # XXX chris starts here:
-bar_ref_start_height = 30
-bar_ref_start_pos = -500
-bar_start_x_offset = 250
+bar_start_height = 30
+bar_start_pos_y = -500
+bar_start_pos_x = 250
 bar_width = 200
-#bar = visual.ShapeStim(win,pos=(0,0),size=(40,120),lineWidth=3, lineColor=[1.0,0,1.0])
-bar = visual.Rect(win,pos=(bar_start_x_offset ,bar_ref_start_pos),width=bar_width, height=bar_ref_start_height,lineWidth=0, fillColor=[0.0,1.0,0.0])
 
-bar_ref = visual.Rect(win,pos=(-bar_start_x_offset ,bar_ref_start_pos),width=bar_width, height=bar_ref_start_height,lineWidth=0, fillColor=[1.0,1.0,0.0])
-#bar_ref = visual.Line(win,start=(bar_ref_start_pos, 1000), end=(bar_ref_start_pos+10, 1000),lineWidth=20)
+#bar = visual.ShapeStim(win,pos=(0,0),size=(40,120),lineWidth=3, lineColor=[1.0,0,1.0])
+bar = visual.Rect(win,pos=(bar_start_pos_x ,bar_start_pos_y),width=bar_width, height=bar_start_height,lineWidth=0, fillColor="Purples") #[0.0,1.0,0.0])
+bar_ref = visual.Rect(win,pos=(-bar_start_pos_x ,bar_start_pos_y),width=bar_width, height=bar_start_height,lineWidth=0, fillColor="Purple") #[1.0,1.0,0.0])
+#bar_ref = visual.Line(win,start=(bar_start_pos_y, 1000), end=(bar_start_pos_y+10, 1000),lineWidth=20)
 message = visual.TextStim(win, pos=(0.0, -(display_resolution[1]/3)),
     alignHoriz='center', alignVert='center', height=40,
     text='move=mv-spot, left-drag=SF, right-drag=mv-grating, scroll=ori',
@@ -111,11 +111,23 @@ message2 = visual.TextStim(win, pos=(0.0, -(display_resolution[1]/4)),
     alignHoriz='center', alignVert='center', height=40,
     text='Press Any Key to Quit.',
     autoLog=False, wrapWidth=display_resolution[0] * .9)
-bar_text = visual.TextStim(win, pos=(bar_start_x_offset+bar_width, 0.0),
+bar_text = visual.TextStim(win, pos=(bar_start_pos_x+bar_width, 0.0),
     alignHoriz='center', alignVert='center', height=40,
     text='',color='Black',
     autoLog=False)
-max_line = visual.ShapeStim(win,vertices=[[bar_start_x_offset-bar_width/2, bar_ref_start_pos],[bar_start_x_offset+bar_width/2,bar_ref_start_pos]],lineColor='Firebrick')
+max_line = visual.ShapeStim(win,vertices=[[bar_start_pos_x-bar_width/2, bar_start_pos_y],[bar_start_pos_x+bar_width/2,bar_start_pos_y]],lineColor='Firebrick')
+
+# we construct the reference bar counterclockwise from the bottom left  
+# castint as np.array allows us to add matrices, which might be necessary in some cases?
+vtx1 = np.array([-bar_start_pos_x-int(bar_width/2), bar_start_pos_y])
+vtx2 = np.array([-bar_start_pos_x+int(bar_width/2), bar_start_pos_y])
+vtx3 = np.array([-bar_start_pos_x+int(bar_width/2), bar_start_pos_y+bar_start_height]) 
+vtx4 = np.array([-bar_start_pos_x-int(bar_width/2), bar_start_pos_y+bar_start_height])
+bar_ref2 = visual.ShapeStim(win=win,fillColor='Blue',lineWidth=0,lineColor='Black',
+    vertices=[vtx1, vtx2, vtx3, vtx4])
+    
+bar_for2 = visual.ShapeStim(win=win,fillColor='Purple',lineWidth=0,lineColor='Black',
+    vertices=[vtx1*[-1,1], vtx2*[-1,1], vtx3*[-1,1], vtx4*[-1,1]])
 
 last_wheelPosY = 0
 
@@ -142,7 +154,7 @@ while not kb_events:
 
     # If the left button is pressed, change the grating's spatial frequency
     t_now = time.time()
-    ref_pos = np.sin((t_now-t_start)*5)*100+100 # + np.cos((t_now-t_start)*10)*50+50
+    ref_pos = np.sin((t_now-t_start)*5)*200+200 # + np.cos((t_now-t_start)*10)*50+50
     #ref_pos = XXX_test_seq[t-1]+100 # + np.cos((t_now-t_start)*10)*50+50
     
 #    if left_button:
@@ -157,16 +169,16 @@ while not kb_events:
     if SPFT_present:
         try:
             ser_str = SPFT_device.read().split('\r\n')[0:-1]
-            SPFT_val = int(ser_str[-1])/10 #XXX this divisor is just to limit for testing, should be replaced with 5-30% of MVC calc
+            SPFT_val = int(ser_str[-1]) #XXX this divisor is just to limit for testing, should be replaced with 5-30% of MVC calc
         except:
             continue
         
-        bar.height = SPFT_val+bar_ref_start_height #stays as last value, if the value has not been updated by the device
-        bar.pos[1] = SPFT_val/2 + bar_ref_start_pos
-        bar_text.pos = (bar_start_x_offset,bar.pos[1]+bar.height/2)
+        bar.height = SPFT_val+bar_start_height #stays as last value, if the value has not been updated by the device
+        bar.pos[1] = SPFT_val/2 + bar_start_pos_y
+        bar_text.pos = (bar_start_pos_x,bar.pos[1]+bar.height/2)
         bar_text.text = "{:d}".format(int(SPFT_val))
         #this does not currently work
-        max_line.setVertices=[[bar_start_x_offset-bar_width/2, bar.height],[bar_start_x_offset+bar_width/2, bar.height]]
+        max_line.setVertices=[[bar_start_pos_x-bar_width/2, bar.height],[bar_start_pos_x+bar_width/2, bar.height]]
 
         
         if bar.width >= 200:
@@ -174,9 +186,12 @@ while not kb_events:
         elif bar.width <= 50:
             flip_bit *= -1
             
-    bar_ref.height = ref_pos + bar_ref_start_height
-    bar_ref.pos[1] = bar_ref_start_pos + ref_pos/2 + bar_ref_start_height
-    
+    bar_ref.height = ref_pos + bar_start_height
+    bar_ref.pos[1] = bar_start_pos_y + ref_pos/2 + bar_start_height
+    vtx3 = [-bar_start_pos_x+int(bar_width/2),ref_pos]
+    vtx4 = [-bar_start_pos_x-int(bar_width/2),ref_pos]
+    bar_ref2.vertices = [vtx1,vtx2,vtx3,vtx4]
+#    bar_for2.vertices[2:] = [vtx1*[-1,1], vtx2*[-1,1],vtx3*[-1,1]+[0,SPFT_val+bar_start_height], vtx4*[-1,1]+[0,SPFT_val+bar_start_height]]
     
     # If no buttons are pressed on the Mouse, move the position of the mouse cursor.
     if True not in (left_button, middle_button, right_button):
@@ -203,12 +218,15 @@ while not kb_events:
     # Redraw the stim for this frame.
 #    fixSpot.draw()
 #    grating.draw()
+#    bar_ref2.vertices = bar_ref2.vertices + [[0,0],[0,0],[0,1],[0,1]]
     bar.draw()
     bar_ref.draw()
     message.draw()
     message2.draw()
     bar_text.draw()
     max_line.draw()
+    bar_ref2.draw()
+    bar_for2.draw()
     flip_time = win.flip()  # redraw the buffer
 
     # Check for keyboard orand mouse events.
