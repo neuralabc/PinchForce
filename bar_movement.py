@@ -17,9 +17,23 @@ import time
 #import serial
 from psychopy.iohub import launchHubServer
 from psychopy import visual, core
+from psychopy.sound import Sound
 import numpy as np
 import os
 
+# XXX For audio events, recommend PTB (in preferences dialog)
+#audioLib = ['PTB','sounddevice', 'pyo', 'pygame', ]
+# sound can be played to each ear independently, using something like this:
+# from: https://groups.google.com/forum/m/#!topic/psychopy-dev/NoSVA7ycBjM
+# as per here: https://www.psychopy.org/download.html#linux this is required in linux for low latency sound with PTB:
+# sudo apt-get install libusb-1.0-0-dev portaudio19-dev libasound2-dev
+#freq_factor = 2*np.pi*np.linspace(0,0.5,22050)
+#freqL = 440
+#freqR = 340
+#soundL = np.sin(freq_factor*freqL)
+#soundR = np.sin(freq_factor*freqR)
+#s_out = Sound(np.array([soundL,soundR]).T)
+#s_out.play()
 
 # event_parser_info dict:
 #
@@ -100,7 +114,7 @@ bar_start_pos_x = 250
 bar_width = 200
 
 #bar = visual.ShapeStim(win,pos=(0,0),size=(40,120),lineWidth=3, lineColor=[1.0,0,1.0])
-bar = visual.Rect(win,pos=(bar_start_pos_x ,bar_start_pos_y),width=bar_width, height=bar_start_height,lineWidth=0, fillColor="Purples") #[0.0,1.0,0.0])
+bar = visual.Rect(win,pos=(bar_start_pos_x ,bar_start_pos_y),width=bar_width, height=bar_start_height,lineWidth=0, fillColor="Yellow") #[0.0,1.0,0.0])
 bar_ref = visual.Rect(win,pos=(-bar_start_pos_x ,bar_start_pos_y),width=bar_width, height=bar_start_height,lineWidth=0, fillColor="Purple") #[1.0,1.0,0.0])
 #bar_ref = visual.Line(win,start=(bar_start_pos_y, 1000), end=(bar_start_pos_y+10, 1000),lineWidth=20)
 message = visual.TextStim(win, pos=(0.0, -(display_resolution[1]/3)),
@@ -143,7 +157,26 @@ t_start = time.time()
 
 flip_bit = 1 #this is just to flip the sign of width change
 
+#-------------------------------
+# SETUP SOUND STIMS
+freq_factor = 2*np.pi*np.linspace(0,0.5,22050)
+freqL = 440
+freqR = 440
+soundL = np.sin(freq_factor*freqL)
+soundR = np.sin(freq_factor*freqR)
+s_out = Sound(np.array([soundL,soundR]).T,secs=10)
+#
+#-------------------------------
+t=1
 while not kb_events:
+    s_out.stop()
+    if t==1:
+        s_out.play()
+        t=0
+    
+#    soundL = np.sin(freq_factor*(freqL+10))
+#    soundR = np.sin(freq_factor*freqR)
+#    s_out.setSound = np.array([soundL,soundR]).T
     # Get the current mouse position
     # posDelta is the change in position * since the last call *
     position, posDelta = mouse.getPositionAndDelta()
